@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amata Document — Receipt Submission</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      max-width: 480px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .header {
+      background: #1a56db;
+      color: white;
+      padding: 28px 32px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .header .client-label {
+      font-size: 15px;
+      opacity: 0.9;
+      margin-top: 6px;
+    }
+
+    .body { padding: 32px; }
+
+    .form-group { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #374151;
+    }
+
+    .required { color: #dc2626; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #111827;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      background: white;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #1a56db;
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+    }
+
+    textarea { resize: vertical; min-height: 72px; }
+
+    .read-only {
+      background: #f3f4f6;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
+
+    .read-only:focus {
+      border-color: #d1d5db;
+      box-shadow: none;
+    }
+
+    .upload-area {
+      border: 2px dashed #d1d5db;
+      border-radius: 10px;
+      padding: 28px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafafa;
+    }
+
+    .upload-area:hover {
+      border-color: #1a56db;
+      background: #eff6ff;
+    }
+
+    .upload-area.dragging {
+      border-color: #1a56db;
+      background: #eff6ff;
+    }
+
+    .upload-area .icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-area .text { font-size: 14px; color: #374151; font-weight: 500; }
+    .upload-area .subtext { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+
+    #file-input { display: none; }
+
+    .file-preview {
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: #eff6ff;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #1a56db;
+      font-weight: 500;
+      display: none;
+    }
+
+    .file-preview.show { display: block; }
+
+    .tip {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: #f9fafb;
+      border-radius: 6px;
+      border-left: 3px solid #1a56db;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+
+    .submit-btn {
+      background: #1a56db;
+      color: white;
+    }
+
+    .submit-btn:hover:not(:disabled) {
+      background: #1648b8;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(26, 86, 219, 0.3);
+    }
+
+    .submit-btn:disabled {
+      background: #93c5fd;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .reset-btn {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .reset-btn:hover { background: #e5e7eb; }
+
+    .toast {
+      padding: 14px 16px;
+      border-radius: 8px;
+      margin: 0 32px 16px;
+      font-size: 14px;
+      display: none;
+      font-weight: 500;
+    }
+
+    .toast.success {
+      background: #d1fae5;
+      border: 1px solid #6ee7b7;
+      color: #065f46;
+    }
+
+    .toast.error {
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Amata Document</h1>
+      <div class="client-label" id="clientLabel">Receipt submission</div>
+    </div>
+
+    <div class="toast success" id="successToast">Receipt submitted successfully.</div>
+    <div class="toast error" id="errorToast"></div>
+
+    <div class="body">
+      <form id="receiptForm">
+
+        <!-- PRE-FILLED (read-only) -->
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="fullName" readonly class="read-only">
+        </div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" readonly class="read-only">
+        </div>
+
+        <div class="form-group">
+          <label>Company</label>
+          <input type="text" id="company" readonly class="read-only">
+        </div>
+
+        <!-- CLIENT FILLS THESE -->
+        <div class="form-group">
+          <label>Receipt photo <span class="required">*</span></label>
+          <div class="upload-area" id="uploadArea">
+            <div class="icon">&#128247;</div>
+            <div class="text">Tap to upload or take a photo</div>
+            <div class="subtext">JPG, PNG, or PDF — max 10 MB</div>
+            <input type="file" id="file-input" accept="image/*,.pdf" capture="environment">
+          </div>
+          <div class="file-preview" id="filePreview"></div>
+          <div class="tip">Make sure the amount and date are clearly visible on the receipt.</div>
+        </div>
+
+        <div class="form-group">
+          <label>Amount <span class="required">*</span></label>
+          <input type="number" id="amount" step="0.01" placeholder="0.00" required>
+        </div>
+
+        <div class="form-group">
+          <label>Date <span class="required">*</span></label>
+          <input type="date" id="date" required>
+        </div>
+
+        <div class="form-group">
+          <label>Category <span class="required">*</span></label>
+          <select id="category" required>
+            <option value="">— Select —</option>
+            <option value="Office Supplies">Office Supplies</option>
+            <option value="Software & Tools">Software & Tools</option>
+            <option value="Meals & Entertainment">Meals & Entertainment</option>
+            <option value="Travel">Travel</option>
+            <option value="Equipment">Equipment</option>
+            <option value="Professional Services">Professional Services</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Business purpose <span class="required">*</span></label>
+          <textarea id="purpose" placeholder="What was this expense for?" required></textarea>
+        </div>
+
+        <div class="buttons">
+          <button type="button" class="reset-btn" onclick="resetForm()">Clear</button>
+          <button type="submit" class="submit-btn" id="submitBtn">Submit receipt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // CONFIGURATION — EDIT THESE TWO SECTIONS PER CLIENT
+    // ============================================================
+
+    // 1. Your Vercel backend URL (set after deploying)
+    const API_URL = 'https://amata-document.vercel.app';
+
+    // 2. Client details (change per client, then Save As a new file)
+    const CLIENT = {
+      fullName: 'Dave Thompson',
+      email:    'dave@davebusiness.co.nz',
+      company:  "Dave's Business Ltd",
+    };
+
+    // ============================================================
+    // INITIALISE FORM
+    // ============================================================
+    document.getElementById('fullName').value = CLIENT.fullName;
+    document.getElementById('email').value    = CLIENT.email;
+    document.getElementById('company').value  = CLIENT.company;
+    document.getElementById('clientLabel').textContent = `for ${CLIENT.fullName}`;
+    document.getElementById('date').valueAsDate = new Date();
+
+    // ============================================================
+    // FILE UPLOAD
+    // ============================================================
+    const uploadArea  = document.getElementById('uploadArea');
+    const fileInput   = document.getElementById('file-input');
+    const filePreview = document.getElementById('filePreview');
+
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    uploadArea.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadArea.classList.add('dragging');
+    });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragging'));
+    uploadArea.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragging');
+      fileInput.files = e.dataTransfer.files;
+      showFilePreview();
+    });
+    fileInput.addEventListener('change', showFilePreview);
+
+    function showFilePreview() {
+      const f = fileInput.files[0];
+      if (!f) { filePreview.classList.remove('show'); return; }
+      if (f.size > 10 * 1024 * 1024) {
+        toast('File too large. Maximum 10 MB.', 'error');
+        fileInput.value = '';
+        filePreview.classList.remove('show');
+        return;
+      }
+      filePreview.textContent = `${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`;
+      filePreview.classList.add('show');
+    }
+
+    // ============================================================
+    // TOAST MESSAGES
+    // ============================================================
+    function toast(msg, type) {
+      const el = document.getElementById(type === 'error' ? 'errorToast' : 'successToast');
+      if (type === 'error') el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), 4000);
+    }
+
+    // ============================================================
+    // FORM SUBMISSION
+    // ============================================================
+    document.getElementById('receiptForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!fileInput.files[0]) { toast('Please upload a receipt.', 'error'); return; }
+
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Uploading…';
+
+      try {
+        const fd = new FormData();
+        fd.append('fullName', CLIENT.fullName);
+        fd.append('email',    CLIENT.email);
+        fd.append('company',  CLIENT.company);
+        fd.append('amount',   document.getElementById('amount').value);
+        fd.append('date',     document.getElementById('date').value);
+        fd.append('category', document.getElementById('category').value);
+        fd.append('purpose',  document.getElementById('purpose').value);
+        fd.append('receipt',  fileInput.files[0]);
+
+        const res = await fetch(API_URL + '/api/submit-receipt', {
+          method: 'POST',
+          body: fd,
+        });
+
+        if (res.ok) {
+          toast('Receipt submitted successfully.', 'success');
+          resetForm();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          toast(data.error || 'Submission failed. Please try again.', 'error');
+        }
+      } catch (err) {
+        toast('Network error. Check your connection.', 'error');
+        console.error(err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit receipt';
+      }
+    });
+
+    function resetForm() {
+      document.getElementById('amount').value = '';
+      document.getElementById('date').valueAsDate = new Date();
+      document.getElementById('category').value = '';
+      document.getElementById('purpose').value = '';
+      fileInput.value = '';
+      filePreview.classList.remove('show');
+    }
+  </script>
+</body>
+</html>
